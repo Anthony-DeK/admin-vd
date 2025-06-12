@@ -25,14 +25,25 @@ export function ApartmentList() {
       setLoading(true);
       const { data: apartmentsData, error: apartmentsError } = await supabase
         .from('apartments')
-        .select(`
-          *,
-          details:apartment_details(*)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (apartmentsError) throw apartmentsError;
-      setApartments(apartmentsData || []);
+
+      // Fetch apartment details separately
+      const { data: detailsData, error: detailsError } = await supabase
+        .from('apartment_details')
+        .select('*');
+
+      if (detailsError) throw detailsError;
+
+      // Combine the data
+      const apartmentsWithDetails = apartmentsData?.map(apartment => ({
+        ...apartment,
+        details: detailsData?.find(detail => detail.apartment_id === apartment.id)
+      })) || [];
+
+      setApartments(apartmentsWithDetails);
     } catch (err) {
       console.error('Error fetching apartments:', err);
       setError('Failed to load apartments');
