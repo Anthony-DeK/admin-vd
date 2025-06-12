@@ -52,7 +52,10 @@ function App() {
       try {
         const { data, error } = await supabase
           .from('bookings')
-          .select('*')
+          .select(`
+            *,
+            apartment:apartments(name)
+          `)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -65,7 +68,7 @@ function App() {
           guestPhone: booking.guest_phone,
           checkIn: booking.check_in,
           checkOut: booking.check_out,
-          apartment: booking.apartment_id, // We'll need to join with apartments table to get the name
+          apartment: booking.apartment?.name || 'Unknown Apartment', // Use the apartment name
           status: booking.status,
           totalAmount: booking.total_amount,
           guests: booking.guests,
@@ -138,7 +141,7 @@ function App() {
             guest_phone: bookingData.guestPhone,
             check_in: bookingData.checkIn,
             check_out: bookingData.checkOut,
-            apartment_id: bookingData.apartment,
+            apartment_id: bookingData.apartment, // This is the apartment ID
             status: bookingData.status,
             total_amount: bookingData.totalAmount,
             guests: bookingData.guests,
@@ -157,7 +160,7 @@ function App() {
             guest_phone: bookingData.guestPhone,
             check_in: bookingData.checkIn,
             check_out: bookingData.checkOut,
-            apartment_id: bookingData.apartment,
+            apartment_id: bookingData.apartment, // This is the apartment ID
             status: bookingData.status,
             total_amount: bookingData.totalAmount,
             guests: bookingData.guests,
@@ -170,7 +173,10 @@ function App() {
       // Refresh bookings after save
       const { data, error } = await supabase
         .from('bookings')
-        .select('*')
+        .select(`
+          *,
+          apartment:apartments(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -182,7 +188,7 @@ function App() {
         guestPhone: booking.guest_phone,
         checkIn: booking.check_in,
         checkOut: booking.check_out,
-        apartment: booking.apartment_id,
+        apartment: booking.apartment?.name || 'Unknown Apartment',
         status: booking.status,
         totalAmount: booking.total_amount,
         guests: booking.guests,
