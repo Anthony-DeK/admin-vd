@@ -3,9 +3,9 @@ import { supabase } from '../lib/supabase';
 
 interface Apartment {
   id: string;
-  title: string;
-  description: string | null;
-  price: number;
+  name: string;
+  type: 'studio' | '1bed' | '2bed' | '3bed';
+  max_guests: number;
   location: string;
   bedrooms: number;
   bathrooms: number;
@@ -44,9 +44,9 @@ export function ApartmentList() {
     <div className="grid gap-4">
       {apartments.map((apartment) => (
         <div key={apartment.id} className="p-4 border rounded-lg">
-          <h2 className="text-xl font-bold">{apartment.title}</h2>
-          <p className="text-gray-600">{apartment.description}</p>
-          <p className="font-semibold">${apartment.price}/month</p>
+          <h2 className="text-xl font-bold">{apartment.name}</h2>
+          <p className="text-gray-600">Type: {apartment.type}</p>
+          <p className="font-semibold">Max Guests: {apartment.max_guests}</p>
           <p>{apartment.location}</p>
           <p>{apartment.bedrooms} beds • {apartment.bathrooms} baths</p>
           <p className={apartment.is_available ? 'text-green-600' : 'text-red-600'}>

@@ -17,5 +17,11 @@ export interface Apartment {
   id: string;
   name: string;
   type: 'studio' | '1bed' | '2bed' | '3bed';
-  maxGuests: number;
+  max_guests: number;
+  location: string;
+  bedrooms: number;
+  bathrooms: number;
+  is_available: boolean;
+  created_at: string;
+  updated_at: string;
 }

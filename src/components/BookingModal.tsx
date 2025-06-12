@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { Booking, Apartment } from '../types';
+import { Booking } from '../types';
+
+interface Apartment {
+  id: string;
+  name: string;
+  type: 'studio' | '1bed' | '2bed' | '3bed';
+  max_guests: number;
+  location: string;
+  bedrooms: number;
+  bathrooms: number;
+  is_available: boolean;
+}
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -51,7 +62,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         guestPhone: '',
         checkIn: '',
         checkOut: '',
-        apartment: apartments[0]?.name || '',
+        apartment: apartments[0]?.id || '',
         status: 'pending',
         totalAmount: 0,
         guests: 1,
@@ -80,22 +91,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {booking ? 'Edit Booking' : 'Add New Booking'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              {booking ? 'Edit Booking' : 'New Booking'}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="guestName" className="block text-sm font-medium text-gray-700 mb-2">
                 Guest Name *
@@ -153,7 +164,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
               >
                 {apartments.map(apt => (
-                  <option key={apt.id} value={apt.name}>{apt.name}</option>
+                  <option key={apt.id} value={apt.id}>
+                    {apt.name} ({apt.type}, {apt.bedrooms} beds)
+                  </option>
                 ))}
               </select>
             </div>
@@ -223,13 +236,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                Status
+                Status *
               </label>
               <select
                 id="status"
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
+                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
               >
                 <option value="pending">Pending</option>
@@ -238,39 +252,38 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <option value="completed">Completed</option>
               </select>
             </div>
-          </div>
 
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-              placeholder="Any special requests or notes..."
-            />
-          </div>
+            <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+                Notes
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+              />
+            </div>
 
-          <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-coral-500 hover:bg-coral-600 text-white rounded-lg transition-colors"
-            >
-              {booking ? 'Update Booking' : 'Create Booking'}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-coral-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-coral-500 border border-transparent rounded-lg hover:bg-coral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-coral-500"
+              >
+                {booking ? 'Update Booking' : 'Create Booking'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

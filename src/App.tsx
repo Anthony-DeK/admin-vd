@@ -4,27 +4,93 @@ import { Dashboard } from './components/Dashboard';
 import { BookingCalendar } from './components/BookingCalendar';
 import { BookingsList } from './components/BookingsList';
 import { BookingModal } from './components/BookingModal';
-import { mockBookings, apartments } from './data/mockData';
 import { Booking } from './types';
 import { ApartmentList } from './components/ApartmentList';
 import { SupabaseTest } from './components/SupabaseTest';
+import { supabase } from './lib/supabase';
+
+interface Apartment {
+  id: string;
+  name: string;
+  type: 'studio' | '1bed' | '2bed' | '3bed';
+  max_guests: number;
+  location: string;
+  bedrooms: number;
+  bathrooms: number;
+  is_available: boolean;
+}
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [apartments, setApartments] = useState<Apartment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | undefined>();
+
+  // Fetch apartments from Supabase
+  useEffect(() => {
+    async function fetchApartments() {
+      try {
+        const { data, error } = await supabase
+          .from('apartments')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setApartments(data || []);
+      } catch (err) {
+        console.error('Error fetching apartments:', err);
+      }
+    }
+
+    fetchApartments();
+  }, []);
+
+  // Fetch bookings from Supabase
+  useEffect(() => {
+    async function fetchBookings() {
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Transform the data to match our Booking interface
+        const transformedBookings: Booking[] = (data || []).map(booking => ({
+          id: booking.id,
+          guestName: booking.guest_name,
+          guestEmail: booking.guest_email,
+          guestPhone: booking.guest_phone,
+          checkIn: booking.check_in,
+          checkOut: booking.check_out,
+          apartment: booking.apartment_id, // We'll need to join with apartments table to get the name
+          status: booking.status,
+          totalAmount: booking.total_amount,
+          guests: booking.guests,
+          createdAt: booking.created_at,
+          notes: booking.notes
+        }));
+
+        setBookings(updateBookingStatuses(transformedBookings));
+      } catch (err) {
+        console.error('Error fetching bookings:', err);
+      }
+    }
+
+    fetchBookings();
+  }, []);
 
   // Function to update booking statuses based on current date
   const updateBookingStatuses = (bookingsList: Booking[]): Booking[] => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+    today.setHours(0, 0, 0, 0);
 
     return bookingsList.map(booking => {
       const checkOutDate = new Date(booking.checkOut);
       checkOutDate.setHours(0, 0, 0, 0);
 
-      // If booking is confirmed and check-out date has passed, mark as completed
       if (booking.status === 'confirmed' && checkOutDate < today) {
         return { ...booking, status: 'completed' as const };
       }
@@ -32,12 +98,6 @@ function App() {
       return booking;
     });
   };
-
-  // Initialize bookings with updated statuses
-  useEffect(() => {
-    const updatedBookings = updateBookingStatuses(mockBookings);
-    setBookings(updatedBookings);
-  }, []);
 
   const handleAddBooking = () => {
     setEditingBooking(undefined);
@@ -49,46 +109,94 @@ function App() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteBooking = (bookingId: string) => {
+  const handleDeleteBooking = async (bookingId: string) => {
     if (confirm('Are you sure you want to delete this booking?')) {
-      setBookings(prev => prev.filter(b => b.id !== bookingId));
+      try {
+        const { error } = await supabase
+          .from('bookings')
+          .delete()
+          .eq('id', bookingId);
+
+        if (error) throw error;
+        setBookings(prev => prev.filter(b => b.id !== bookingId));
+      } catch (err) {
+        console.error('Error deleting booking:', err);
+        alert('Failed to delete booking');
+      }
     }
   };
 
-  const handleSaveBooking = (bookingData: Partial<Booking>) => {
-    let updatedBookings: Booking[];
+  const handleSaveBooking = async (bookingData: Partial<Booking>) => {
+    try {
+      if (editingBooking) {
+        // Update existing booking
+        const { error } = await supabase
+          .from('bookings')
+          .update({
+            guest_name: bookingData.guestName,
+            guest_email: bookingData.guestEmail,
+            guest_phone: bookingData.guestPhone,
+            check_in: bookingData.checkIn,
+            check_out: bookingData.checkOut,
+            apartment_id: bookingData.apartment,
+            status: bookingData.status,
+            total_amount: bookingData.totalAmount,
+            guests: bookingData.guests,
+            notes: bookingData.notes
+          })
+          .eq('id', editingBooking.id);
 
-    if (editingBooking) {
-      // Update existing booking
-      updatedBookings = bookings.map(b => 
-        b.id === editingBooking.id 
-          ? { ...b, ...bookingData }
-          : b
-      );
-    } else {
-      // Add new booking
-      const newBooking: Booking = {
-        id: Date.now().toString(),
-        guestName: bookingData.guestName!,
-        guestEmail: bookingData.guestEmail!,
-        guestPhone: bookingData.guestPhone!,
-        checkIn: bookingData.checkIn!,
-        checkOut: bookingData.checkOut!,
-        apartment: bookingData.apartment!,
-        status: bookingData.status!,
-        totalAmount: bookingData.totalAmount!,
-        guests: bookingData.guests!,
-        createdAt: new Date().toISOString(),
-        notes: bookingData.notes
-      };
-      updatedBookings = [...bookings, newBooking];
+        if (error) throw error;
+      } else {
+        // Add new booking
+        const { error } = await supabase
+          .from('bookings')
+          .insert([{
+            guest_name: bookingData.guestName,
+            guest_email: bookingData.guestEmail,
+            guest_phone: bookingData.guestPhone,
+            check_in: bookingData.checkIn,
+            check_out: bookingData.checkOut,
+            apartment_id: bookingData.apartment,
+            status: bookingData.status,
+            total_amount: bookingData.totalAmount,
+            guests: bookingData.guests,
+            notes: bookingData.notes
+          }]);
+
+        if (error) throw error;
+      }
+
+      // Refresh bookings after save
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const transformedBookings: Booking[] = (data || []).map(booking => ({
+        id: booking.id,
+        guestName: booking.guest_name,
+        guestEmail: booking.guest_email,
+        guestPhone: booking.guest_phone,
+        checkIn: booking.check_in,
+        checkOut: booking.check_out,
+        apartment: booking.apartment_id,
+        status: booking.status,
+        totalAmount: booking.total_amount,
+        guests: booking.guests,
+        createdAt: booking.created_at,
+        notes: booking.notes
+      }));
+
+      setBookings(updateBookingStatuses(transformedBookings));
+      setIsModalOpen(false);
+      setEditingBooking(undefined);
+    } catch (err) {
+      console.error('Error saving booking:', err);
+      alert('Failed to save booking');
     }
-
-    // Apply status updates to the new booking list
-    const finalBookings = updateBookingStatuses(updatedBookings);
-    setBookings(finalBookings);
-    setIsModalOpen(false);
-    setEditingBooking(undefined);
   };
 
   const renderCurrentView = () => {
