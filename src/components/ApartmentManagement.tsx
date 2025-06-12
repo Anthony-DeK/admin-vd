@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 interface Apartment {
   id: number;
@@ -14,7 +14,7 @@ interface Apartment {
 }
 
 interface ApartmentDetails {
-  id: number;
+  id?: number;
   apartment_id: number;
   short_description: string;
   long_description: string;
@@ -25,7 +25,7 @@ interface ApartmentDetails {
   base_price: number;
   cleaning_fee: number;
   service_fee: number;
-  created_at: string;
+  created_at?: string;
 }
 
 interface ApartmentWithDetails extends Apartment {
@@ -95,6 +95,8 @@ export default function ApartmentManagement() {
   };
 
   const uploadImages = async (apartmentId: number): Promise<string[]> => {
+    if (!apartmentId) throw new Error('Apartment ID is required');
+    
     const uploadedUrls: string[] = [];
     
     for (const image of selectedImages) {
@@ -119,6 +121,7 @@ export default function ApartmentManagement() {
   };
 
   const uploadCoverImage = async (apartmentId: number): Promise<string> => {
+    if (!apartmentId) throw new Error('Apartment ID is required');
     if (!coverImage) return '';
 
     const fileExt = coverImage.name.split('.').pop();
@@ -176,8 +179,11 @@ export default function ApartmentManagement() {
           .select();
 
         if (error) throw error;
+        if (!data?.[0]?.id) throw new Error('Failed to create apartment');
         apartmentId = data[0].id;
       }
+
+      if (!apartmentId) throw new Error('Apartment ID is required');
 
       // Upload images if any
       let coverImageUrl = '';
@@ -192,17 +198,17 @@ export default function ApartmentManagement() {
       }
 
       // Update or insert apartment details
-      const detailsData = {
+      const detailsData: ApartmentDetails = {
         apartment_id: apartmentId,
-        short_description: apartmentData.details?.short_description,
-        long_description: apartmentData.details?.long_description,
-        amenities: apartmentData.details?.amenities,
-        house_rules: apartmentData.details?.house_rules,
-        base_price: apartmentData.details?.base_price,
-        cleaning_fee: apartmentData.details?.cleaning_fee,
-        service_fee: apartmentData.details?.service_fee,
-        cover_image: coverImageUrl || apartmentData.details?.cover_image,
-        images: imageUrls.length > 0 ? imageUrls : apartmentData.details?.images
+        short_description: apartmentData.details?.short_description || '',
+        long_description: apartmentData.details?.long_description || '',
+        amenities: apartmentData.details?.amenities || [],
+        house_rules: apartmentData.details?.house_rules || [],
+        base_price: apartmentData.details?.base_price || 0,
+        cleaning_fee: apartmentData.details?.cleaning_fee || 0,
+        service_fee: apartmentData.details?.service_fee || 0,
+        cover_image: coverImageUrl || apartmentData.details?.cover_image || '',
+        images: imageUrls.length > 0 ? imageUrls : apartmentData.details?.images || []
       };
 
       if (editingApartment?.details) {
@@ -215,7 +221,10 @@ export default function ApartmentManagement() {
       } else {
         const { error } = await supabase
           .from('apartment_details')
-          .insert([detailsData]);
+          .insert([{
+            ...detailsData,
+            created_at: new Date().toISOString()
+          }]);
 
         if (error) throw error;
       }
@@ -312,13 +321,16 @@ export default function ApartmentManagement() {
                 bathrooms: parseInt(formData.get('bathrooms') as string),
                 is_available: formData.get('is_available') === 'true',
                 details: {
+                  apartment_id: editingApartment?.id || 0,
                   short_description: formData.get('short_description') as string,
                   long_description: formData.get('long_description') as string,
                   amenities: (formData.get('amenities') as string).split(',').map(a => a.trim()),
                   house_rules: (formData.get('house_rules') as string).split(',').map(r => r.trim()),
                   base_price: parseFloat(formData.get('base_price') as string),
                   cleaning_fee: parseFloat(formData.get('cleaning_fee') as string),
-                  service_fee: parseFloat(formData.get('service_fee') as string)
+                  service_fee: parseFloat(formData.get('service_fee') as string),
+                  cover_image: editingApartment?.details?.cover_image || '',
+                  images: editingApartment?.details?.images || []
                 }
               });
             }}>
