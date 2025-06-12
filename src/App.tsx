@@ -8,6 +8,7 @@ import { Booking } from './types';
 import { ApartmentList } from './components/ApartmentList';
 import { SupabaseTest } from './components/SupabaseTest';
 import { supabase } from './lib/supabase';
+import ApartmentManagement from './components/ApartmentManagement';
 
 interface Apartment {
   id: string;
@@ -21,7 +22,7 @@ interface Apartment {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState<'bookings' | 'apartments' | 'apartment-management' | 'dashboard' | 'calendar' | 'settings' | 'supabase-test'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -207,19 +208,37 @@ function App() {
 
   const renderCurrentView = () => {
     switch (currentView) {
+      case 'bookings':
+        return (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Bookings</h2>
+              <button
+                onClick={() => {
+                  setEditingBooking(undefined);
+                  setIsModalOpen(true);
+                }}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Add New Booking
+              </button>
+            </div>
+            <BookingsList
+              bookings={bookings}
+              onAddBooking={handleAddBooking}
+              onEditBooking={handleEditBooking}
+              onDeleteBooking={handleDeleteBooking}
+            />
+          </>
+        );
+      case 'apartments':
+        return <ApartmentList />;
+      case 'apartment-management':
+        return <ApartmentManagement />;
       case 'dashboard':
         return <Dashboard bookings={bookings} />;
       case 'calendar':
         return <BookingCalendar bookings={bookings} />;
-      case 'bookings':
-        return (
-          <BookingsList
-            bookings={bookings}
-            onAddBooking={handleAddBooking}
-            onEditBooking={handleEditBooking}
-            onDeleteBooking={handleDeleteBooking}
-          />
-        );
       case 'settings':
         return (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
@@ -227,8 +246,6 @@ function App() {
             <p className="text-gray-600">Settings panel coming soon...</p>
           </div>
         );
-      case 'apartments':
-        return <ApartmentList />;
       case 'supabase-test':
         return <SupabaseTest />;
       default:
@@ -237,11 +254,49 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentView={currentView} onViewChange={setCurrentView} />
-      
-      <div className="flex-1 p-8">
-        <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-100">
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-white shadow-md h-screen fixed">
+          <div className="p-4">
+            <h1 className="text-2xl font-bold text-gray-800 mb-8">Villa Divona</h1>
+            <nav>
+              <button
+                onClick={() => setCurrentView('bookings')}
+                className={`w-full text-left px-4 py-2 rounded-lg mb-2 ${
+                  currentView === 'bookings'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Bookings
+              </button>
+              <button
+                onClick={() => setCurrentView('apartments')}
+                className={`w-full text-left px-4 py-2 rounded-lg mb-2 ${
+                  currentView === 'apartments'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Apartments
+              </button>
+              <button
+                onClick={() => setCurrentView('apartment-management')}
+                className={`w-full text-left px-4 py-2 rounded-lg mb-2 ${
+                  currentView === 'apartment-management'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Manage Apartments
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="ml-64 flex-1 p-8">
           {renderCurrentView()}
         </div>
       </div>
