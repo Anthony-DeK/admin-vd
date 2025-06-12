@@ -6,6 +6,8 @@ import { BookingsList } from './components/BookingsList';
 import { BookingModal } from './components/BookingModal';
 import { mockBookings, apartments } from './data/mockData';
 import { Booking } from './types';
+import { ApartmentList } from './components/ApartmentList';
+import { SupabaseTest } from './components/SupabaseTest';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -111,6 +113,10 @@ function App() {
             <p className="text-gray-600">Settings panel coming soon...</p>
           </div>
         );
+      case 'apartments':
+        return <ApartmentList />;
+      case 'supabase-test':
+        return <SupabaseTest />;
       default:
         return <Dashboard bookings={bookings} />;
     }
