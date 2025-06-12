@@ -81,25 +81,32 @@ export function ApartmentList() {
 
   const uploadImages = async (apartmentId: number): Promise<string[]> => {
     if (!apartmentId) throw new Error('Apartment ID is required');
+    if (selectedImages.length === 0) return [];
     
     const uploadedUrls: string[] = [];
     
     for (const image of selectedImages) {
-      const fileExt = image.name.split('.').pop();
-      const fileName = `${apartmentId}/${Math.random()}.${fileExt}`;
-      const filePath = `apartments/${fileName}`;
+      try {
+        const fileExt = image.name.split('.').pop();
+        const fileName = `${apartmentId}/${Math.random()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('apartments')
-        .upload(filePath, image);
+        const { error: uploadError } = await supabase.storage
+          .from('apartments')
+          .upload(fileName, image);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          continue;
+        }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('apartments')
-        .getPublicUrl(filePath);
+        const { data: { publicUrl } } = supabase.storage
+          .from('apartments')
+          .getPublicUrl(fileName);
 
-      uploadedUrls.push(publicUrl);
+        uploadedUrls.push(publicUrl);
+      } catch (err) {
+        console.error('Error uploading image:', err);
+      }
     }
 
     return uploadedUrls;
@@ -109,21 +116,28 @@ export function ApartmentList() {
     if (!apartmentId) throw new Error('Apartment ID is required');
     if (!coverImage) return '';
 
-    const fileExt = coverImage.name.split('.').pop();
-    const fileName = `${apartmentId}/cover.${fileExt}`;
-    const filePath = `apartments/${fileName}`;
+    try {
+      const fileExt = coverImage.name.split('.').pop();
+      const fileName = `${apartmentId}/cover.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('apartments')
-      .upload(filePath, coverImage);
+      const { error: uploadError } = await supabase.storage
+        .from('apartments')
+        .upload(fileName, coverImage);
 
-    if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error uploading cover image:', uploadError);
+        return '';
+      }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('apartments')
-      .getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage
+        .from('apartments')
+        .getPublicUrl(fileName);
 
-    return publicUrl;
+      return publicUrl;
+    } catch (err) {
+      console.error('Error uploading cover image:', err);
+      return '';
+    }
   };
 
   const handleSaveApartment = async (apartmentData: Partial<ApartmentWithDetails>) => {
